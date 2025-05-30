@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Vendas - Produtos de Pistache</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #99911E 0%, #99911E 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #99911E, #834C63);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #99911E;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-title::before {
+            content: '📊';
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .chart-canvas {
+            position: relative;
+            height: 350px;
+            margin-bottom: 10px;
+        }
+
+        .insights-section {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .insights-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #333;
+            text-align: center;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .insight-card {
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 5px solid;
+        }
+
+        .insight-card.purple {
+            background: #f3e8ff;
+            border-left-color: #8b5cf6;
+        }
+
+        .insight-card.blue {
+            background: #dbeafe;
+            border-left-color: #3b82f6;
+        }
+
+        .insight-card.green {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+
+        .insight-card h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .insight-card.purple h4 { color: #7c3aed; }
+        .insight-card.blue h4 { color: #2563eb; }
+        .insight-card.green h4 { color: #059669; }
+
+        .insight-card p {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .insight-card.purple p { color: #6b46c1; }
+        .insight-card.blue p { color: #1d4ed8; }
+        .insight-card.green p { color: #047857; }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                padding: 20px;
+            }
+            
+            .chart-canvas {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Dashboard de Vendas</h1>
+            <p>Produtos de Pistache - Análise Completa de Performance</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">R$ 17.380,80</div>
+                <div class="stat-label">Total de Vendas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">952</div>
+                <div class="stat-label">Unidades Vendidas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">10</div>
+                <div class="stat-label">Produtos Diferentes</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <!-- Vendas por Região -->
+            <div class="chart-container">
+                <div class="chart-title">Vendas por Região</div>
+                <div class="chart-canvas">
+                    <canvas id="regionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Vendas por Canal -->
+            <div class="chart-container">
+                <div class="chart-title">Distribuição por Canal</div>
+                <div class="chart-canvas">
+                    <canvas id="channelChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Evolução Trimestral -->
+            <div class="chart-container">
+                <div class="chart-title">Evolução Trimestral</div>
+                <div class="chart-canvas">
+                    <canvas id="quarterChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Produtos -->
+            <div class="chart-container">
+                <div class="chart-title">Top 5 Produtos</div>
+                <div class="chart-canvas">
+                    <canvas id="productsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="insights-section">
+            <div class="insights-title">Principais Insights</div>
+            <div class="insights-grid">
+                <div class="insight-card purple">
+                    <h4>🎯 Região Destaque</h4>
+                    <p>O Sudeste lidera as vendas com R$ 5.498,80, representando 32% do faturamento total. Esta região merece atenção especial para expansão.</p>
+                </div>
+                <div class="insight-card blue">
+                    <h4>💻 Canal Preferido</h4>
+                    <p>Vendas online e físicas estão equilibradas, com leve vantagem para o canal físico. Oportunidade de crescimento digital.</p>
+                </div>
+                <div class="insight-card green">
+                    <h4>🏆 Produto Campeão</h4>
+                    <p>Mix de Frutas com Pistache é o líder absoluto com R$ 4.000,00 em vendas, seguido pelo Chocolate com Pistache.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados processados
+        const salesData = {
+            regions: {
+                'Sudeste': 5498.80,
+                'Nordeste': 3225.00,
+                'Centro-Oeste': 7600.00,
+                'Sul': 207.00
+            },
+            channels: {
+                'Online': 7705.80,
+                'Loja Física': 9675.00
+            },
+            quarters: {
+                'Q1': 3050.00,
+                'Q2': 4530.80,
+                'Q3': 5400.00,
+                'Q4': 4000.00
+            },
+            products: {
+                'Mix de Frutas com Pistache': 4000.00,
+                'Chocolate com Pistache': 3600.00,
+                'Creme de Pistache': 2800.00,
+                'Bolo de Pistache': 2600.00,
+                'Pasta de Pistache': 2400.00
+            }
+        };
+
+        // Configurações globais do Chart.js
+        Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+        Chart.defaults.font.size = 12;
+
+        // Gráfico de Vendas por Região
+        const regionCtx = document.getElementById('regionChart').getContext('2d');
+        new Chart(regionCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(salesData.regions),
+                datasets: [{
+                    label: 'Vendas (R$)',
+                    data: Object.values(salesData.regions),
+                    backgroundColor: [
+                        '#8b5cf6',
+                        '#06b6d4',
+                        '#10b981',
+                        '#f59e0b'
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + (value/1000).toFixed(0) + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Vendas por Canal
+        const channelCtx = document.getElementById('channelChart').getContext('2d');
+        new Chart(channelCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(salesData.channels),
+                datasets: [{
+                    data: Object.values(salesData.channels),
+                    backgroundColor: [
+                        '#A0C89A',
+                        '#99911E'
+                    ],
+                    borderWidth: 0,
+                    cutout: '60%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': R$ ' + context.parsed.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Evolução Trimestral
+        const quarterCtx = document.getElementById('quarterChart').getContext('2d');
+        new Chart(quarterCtx, {
+            type: 'line',
+            data: {
+                labels: Object.keys(salesData.quarters),
+                datasets: [{
+                    label: 'Vendas (R$)',
+                    data: Object.values(salesData.quarters),
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#06b6d4',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + (value/1000).toFixed(0) + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Top Produtos
+        const productsCtx = document.getElementById('productsChart').getContext('2d');
+        new Chart(productsCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(salesData.products).map(product => 
+                    product.length > 20 ? product.substring(0, 20) + '...' : product
+                ),
+                datasets: [{
+                    label: 'Vendas (R$)',
+                    data: Object.values(salesData.products),
+                    backgroundColor: [
+                        '#10b981',
+                        '#06b6d4',
+                        '#8b5cf6',
+                        '#f59e0b',
+                        '#ef4444'
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'R$ ' + context.parsed.x.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + (value/1000).toFixed(0) + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    
+</body>
+</html>

@@ -1,0 +1,296 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Vendas de Pistache - Estático</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2canvas para captura de imagem -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    .bar {
+      fill: #10B981;
+      stroke: #000;
+      stroke-width: 1;
+    }
+    .bar-loja {
+      fill: #F59E0B;
+      stroke: #000;
+      stroke-width: 1;
+    }
+    .pie-slice {
+      stroke: #000;
+      stroke-width: 1;
+    }
+    .axis text {
+      font-size: 12px;
+      fill: #333;
+    }
+    .axis line, .axis path {
+      stroke: #333;
+      stroke-width: 1;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div id="report-container" class="container mx-auto p-6 bg-white rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-green-700 mb-6 text-center">
+      Relatório de Vendas de Pistache (2024)
+    </h1>
+
+    <!-- Seção de Resumo -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Resumo</h2>
+      <p class="text-gray-700">
+        Este relatório analisa as vendas de produtos à base de pistache em 2024, cobrindo quatro trimestres. Os dados incluem vendas por região (Sudeste, Nordeste, Sul, Centro-Oeste) e canais (Online e Loja Física). As principais descobertas incluem o desempenho de vendas por região, preferências de canal, popularidade dos produtos e tendências mensais. Um fato interessante: <strong>a região Centro-Oeste, apesar de ter menos transações, contribui significativamente devido a pedidos de alto valor, como o Mix de Frutas com Pistache.</strong>
+      </p>
+    </section>
+
+    <!-- Gráfico de Barras: Vendas por Região -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Vendas por Região</h2>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <svg width="100%" height="400" viewBox="0 0 600 400">
+          <!-- Eixos -->
+          <g class="axis">
+            <line x1="50" y1="350" x2="550" y2="350" />
+            <line x1="50" y1="50" x2="50" y2="350" />
+            <!-- Rótulos do eixo X -->
+            <text x="100" y="370" text-anchor="middle">Sudeste</text>
+            <text x="200" y="370" text-anchor="middle">Nordeste</text>
+            <text x="300" y="370" text-anchor="middle">Sul</text>
+            <text x="400" y="370" text-anchor="middle">Centro-Oeste</text>
+            <!-- Rótulos do eixo Y -->
+            <text x="40" y="350" text-anchor="end">R$ 0</text>
+            <text x="40" y="250" text-anchor="end">R$ 2.500</text>
+            <text x="40" y="150" text-anchor="end">R$ 5.000</text>
+            <text x="40" y="50" text-anchor="end">R$ 7.500</text>
+            <!-- Barras -->
+            <rect class="bar" x="80" y="83" width="40" height="267" /> <!-- Sudeste: R$ 5.948,80 -->
+            <rect class="bar" x="180" y="250" width="40" height="100" /> <!-- Nordeste: R$ 3.225,00 -->
+            <rect class="bar" x="280" y="330" width="40" height="20" /> <!-- Sul: R$ 207,00 -->
+            <rect class="bar" x="380" y="17" width="40" height="333" /> <!-- Centro-Oeste: R$ 7.600,00 -->
+          </g>
+          <text x="300" y="30" text-anchor="middle" class="text-lg font-semibold">Vendas Totais por Região</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Gráfico de Barras Empilhadas: Vendas por Canal e Trimestre -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Vendas por Canal e Trimestre</h2>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <svg width="100%" height="400" viewBox="0 0 600 400">
+          <!-- Eixos -->
+          <g class="axis">
+            <line x1="50" y1="350" x2="550" y2="350" />
+            <line x1="50" y1="50" x2="50" y2="350" />
+            <!-- Rótulos do eixo X -->
+            <text x="100" y="370" text-anchor="middle">1º Trimestre</text>
+            <text x="200" y="370" text-anchor="middle">2º Trimestre</text>
+            <text x="300" y="370" text-anchor="middle">3º Trimestre</text>
+            <text x="400" y="370" text-anchor="middle">4º Trimestre</text>
+            <!-- Rótulos do eixo Y -->
+            <text x="40" y="350" text-anchor="end">R$ 0</text>
+            <text x="40" y="250" text-anchor="end">R$ 2.000</text>
+            <text x="40" y="150" text-anchor="end">R$ 4.000</text>
+            <text x="40" y="50" text-anchor="end">R$ 6.000</text>
+            <!-- Barras empilhadas -->
+            <!-- 1º Trimestre -->
+            <rect class="bar" x="80" y="200" width="35" height="150" /> <!-- Online: R$ 2.400 -->
+            <rect class="bar-loja" x="80" y="150" width="35" height="50" /> <!-- Loja Física: R$ 650 -->
+            <!-- 2º Trimestre -->
+            <rect class="bar" x="180" y="330" width="35" height="20" /> <!-- Online: R$ 298,80 -->
+            <rect class="bar-loja" x="180" y="150" width="35" height="180" /> <!-- Loja Física: R$ 4.025 -->
+            <!-- 3º Trimestre -->
+            <rect class="bar" x="280" y="180" width="35" height="170" /> <!-- Online: R$ 2.800 -->
+            <rect class="bar-loja" x="280" y="80" width="35" height="100" /> <!-- Loja Física: R$ 2.600 -->
+            <!-- 4º Trimestre -->
+            <rect class="bar" x="380" y="150" width="35" height="200" /> <!-- Online: R$ 4.000 -->
+          </g>
+          <text x="300" y="30" text-anchor="middle" class="text-lg font-semibold">Vendas por Canal e Trimestre</text>
+          <!-- Legenda -->
+          <rect x="450" y="50" width="20" height="20" fill="#10B981" />
+          <text x="480" y="65" font-size="12">Online</text>
+          <rect x="450" y="80" width="20" height="20" fill="#F59E0B" />
+          <text x="480" y="95" font-size="12">Loja Física</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Gráfico de Pizza: Vendas por Produto -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Vendas por Produto</h2>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <svg width="100%" height="400" viewBox="0 0 400 400">
+          <!-- Pizza -->
+          <g transform="translate(200, 200)">
+            <path class="pie-slice" fill="#10B981" d="M0,0 L150,0 A150,150 0 0,1 75,-129.9 L0,0" /> <!-- Mix de Frutas: 26% -->
+            <path class="pie-slice" fill="#F59E0B" d="M75,-129.9 A150,150 0 0,1 -75,-129.9 L0,0" /> <!-- Chocolate: 23% -->
+            <path class="pie-slice" fill="#EF4444" d="M-75,-129.9 A150,150 0 0,1 -150,0 L0,0" /> <!-- Creme: 18% -->
+            <path class="pie-slice" fill="#3B82F6" d="M-150,0 A150,150 0 0,1 -75,129.9 L0,0" /> <!-- Bolo: 17% -->
+            <path class="pie-slice" fill="#8B5CF6" d="M-75,129.9 A150,150 0 0,1 75,129.9 L0,0" /> <!-- Pasta: 15% -->
+            <!-- Outros produtos (menores) combinados -->
+            <path class="pie-slice" fill="#6B7280" d="M75,129.9 A150,150 0 0,1 150,0 L0,0" /> <!-- Outros: ~1% -->
+          </g>
+          <!-- Legenda -->
+          <text x="300" y="50" font-size="12">Mix de Frutas com Pistache (26,0%)</text>
+          <rect x="280" y="40" width="15" height="10" fill="#10B981" />
+          <text x="300" y="70" font-size="12">Chocolate com Pistache (23,0%)</text>
+          <rect x="280" y="60" width="15" height="10" fill="#F59E0B" />
+          <text x="300" y="90" font-size="12">Creme de Pistache (18,0%)</text>
+          <rect x="280" y="80" width="15" height="10" fill="#EF4444" />
+          <text x="300" y="110" font-size="12">Bolo de Pistache (17,0%)</text>
+          <rect x="280" y="100" width="15" height="10" fill="#3B82F6" />
+          <text x="300" y="130" font-size="12">Pasta de Pistache (15,0%)</text>
+          <rect x="280" y="120" width="15" height="10" fill="#8B5CF6" />
+          <text x="300" y="150" font-size="12">Outros (1,0%)</text>
+          <rect x="280" y="140" width="15" height="10" fill="#6B7280" />
+          <text x="200" y="30" text-anchor="middle" class="text-lg font-semibold">Vendas por Produto</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Gráfico de Linha: Tendência de Vendas por Mês -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Tendência de Vendas por Mês</h2>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <svg width="100%" height="400" viewBox="0 0 600 400">
+          <!-- Eixos -->
+          <g class="axis">
+            <line x1="50" y1="350" x2="550" y2="350" />
+            <line x1="50" y1="50" x2="50" y2="350" />
+            <!-- Rótulos do eixo X -->
+            <text x="100" y="370" text-anchor="middle">Janeiro</text>
+            <text x="200" y="370" text-anchor="middle">Abril</text>
+            <text x="300" y="370" text-anchor="middle">Maio</text>
+            <text x="400" y="370" text-anchor="middle">Julho</text>
+            <text x="500" y="370" text-anchor="middle">Setembro</text>
+            <text x="600" y="370" text-anchor="middle">Outubro</text>
+            <!-- Rótulos do eixo Y -->
+            <text x="40" y="350" text-anchor="end">R$ 0</text>
+            <text x="40" y="250" text-anchor="end">R$ 2.000</text>
+            <text x="40" y="150" text-anchor="end">R$ 4.000</text>
+            <text x="40" y="50" text-anchor="end">R$ 6.000</text>
+            <!-- Linha -->
+            <polyline points="100,200 200,50 300,280 400,150 500,170 600,150" fill="none" stroke="#10B981" stroke-width="2" />
+          </g>
+          <text x="300" y="30" text-anchor="middle" class="text-lg font-semibold">Vendas Totais por Mês</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Tabela de Resumo -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Tabela de Resumo</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-gray-50 rounded-lg">
+          <thead>
+            <tr class="bg-green-700 text-white">
+              <th class="py-2 px-4 text-left">Região</th>
+              <th class="py-2 px-4 text-left">Canal</th>
+              <th class="py-2 px-4 text-left">Vendas Totais (R$)</th>
+              <th class="py-2 px-4 text-left">Quantidade Total</th>
+              <th class="py-2 px-4 text-left">Preço Unitário Médio (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="bg-gray-100">
+              <td class="py-2 px-4">Sudeste</td>
+              <td class="py-2 px-4">Online</td>
+              <td class="py-2 px-4">5.498,80</td>
+              <td class="py-2 px-4">272</td>
+              <td class="py-2 px-4">20,97</td>
+            </tr>
+            <tr class="bg-white">
+              <td class="py-2 px-4">Sudeste</td>
+              <td class="py-2 px-4">Loja Física</td>
+              <td class="py-2 px-4">450,00</td>
+              <td class="py-2 px-4">30</td>
+              <td class="py-2 px-4">15,00</td>
+            </tr>
+            <tr class="bg-gray-100">
+              <td class="py-2 px-4">Nordeste</td>
+              <td class="py-2 px-4">Loja Física</td>
+              <td class="py-2 px-4">3.225,00</td>
+              <td class="py-2 px-4">220</td>
+              <td class="py-2 px-4">12,50</td>
+            </tr>
+            <tr class="bg-white">
+              <td class="py-2 px-4">Sul</td>
+              <td class="py-2 px-4">Online</td>
+              <td class="py-2 px-4">207,00</td>
+              <td class="py-2 px-4">30</td>
+              <td class="py-2 px-4">6,90</td>
+            </tr>
+            <tr class="bg-gray-100">
+              <td class="py-2 px-4">Centro-Oeste</td>
+              <td class="py-2 px-4">Online</td>
+              <td class="py-2 px-4">4.000,00</td>
+              <td class="py-2 px-4">200</td>
+              <td class="py-2 px-4">20,00</td>
+            </tr>
+            <tr class="bg-white">
+              <td class="py-2 px-4">Centro-Oeste</td>
+              <td class="py-2 px-4">Loja Física</td>
+              <td class="py-2 px-4">3.600,00</td>
+              <td class="py-2 px-4">180</td>
+              <td class="py-2 px-4">20,00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Seção de Conclusão -->
+    <section>
+      <h2 class="text-2xl font-semibold text-green-600 mb-4">Conclusão</h2>
+      <p class="text-gray-700">
+        Os dados de vendas mostram que a região Sudeste lidera em vendas totais, impulsionada por produtos de alto valor como Pasta de Pistache e Creme de Pistache vendidos online. A região Centro-Oeste, embora com menos transações, tem uma contribuição significativa devido a pedidos de alto valor, como o Mix de Frutas com Pistache. Os canais online superam as lojas físicas na maioria dos trimestres, especialmente no 3º e 4º trimestres, indicando uma preferência crescente por compras online. A análise de produtos revela que itens de alto valor, como Chocolate com Pistache e Mix de Frutas com Pistache, impulsionam a receita, enquanto itens menores, como Brigadeiro de Pistache, têm menor volume de vendas. Estratégias futuras podem focar na expansão das vendas online em regiões de alto desempenho e na promoção dos produtos mais vendidos.
+      </p>
+    </section>
+
+    
+  </div>
+</body>
+</html>
